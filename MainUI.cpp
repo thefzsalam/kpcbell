@@ -27,8 +27,12 @@
       case DISPLAY_TIME_NOW:
 	{
 	byte hour = timeProvider.getHours();
+	bool isAM = hour<12;
+	
+	if(hour==0) hour=12;
+	else if(hour>12) hour-=12;
+
 	byte minutes = timeProvider.getMinutes();
-	bool isAM = timeProvider.isAM();
 	sevSeg.setAllDigits(hour/10,hour%10,minutes/10,minutes%10);
 	weeksLed.setAllLeds(0);
 	turnOnIndicators(true,false,false,isAM);	
@@ -49,7 +53,7 @@
 	}
       case DISPLAY_NEXT_ALARM:
 	{
-	Alarm alarm = alarmProvider.getNextAlarm(timeProvider.getHours(),timeProvider.getMinutes(),timeProvider.isAM(),timeProvider.getWeekDay());
+	Alarm alarm = alarmProvider.getNextAlarm(timeProvider.getHours(),timeProvider.getMinutes(),timeProvider.getWeekDay());
 	sevSeg.setAllDigits(alarm.hour/10,alarm.hour%10,alarm.minute/10,alarm.minute%10);
 	weeksLed.setAllLeds(0);
 	indicators.setAllLeds(0);

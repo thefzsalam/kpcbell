@@ -6,8 +6,6 @@ class TimeProvider {
   public:
     virtual void setMinutes(byte min);
     virtual void setHours(byte hour);
-    virtual void setAM(bool isAM);
-    virtual void setWeekDay(byte weekday);
     virtual void setDay(byte day);
     virtual void setMonth(byte month);
     virtual void setYear(int year);
@@ -19,7 +17,6 @@ class TimeProvider {
 
     virtual byte getMinutes();
     virtual byte getHours();
-    virtual bool isAM();
     virtual byte getWeekDay();
     virtual byte getDay();
     virtual byte getMonth();

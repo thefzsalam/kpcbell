@@ -296,4 +296,10 @@
 	 break;
      }
   }
-  
+  void AlarmsUI::saveData() {
+    switch(mode) {
+      case ADD: endAddMode(false);
+      case EDIT: endEditMode(false);
+      case DELETE: endDelMode(false);
+    }
+  }

@@ -1,12 +1,15 @@
+#include "Wire.h"
 #include "SevSeg.h"
 #include "SRLeds.h"
 #include "SRButtons.h"
 #include "ButtonsManager.h"
-#include "SoftTimeProvider.h"
+#include "TimeProvider.h"
+#include "RTCTimeProvider.h"
 #include "UI.h"
 #include "MainUI.h"
 #include "AlarmsUI.h"
 #include "TimeDateSetUI.h"
+#include "AlarmProvider.h"
 
 //Output Elements
 byte commonSrPins[4] = {PIN_DISPLAY_COMM_1,PIN_DISPLAY_COMM_2,PIN_DISPLAY_COMM_3,PIN_DISPLAY_COMM_4};
@@ -19,21 +22,33 @@ SRLeds indicatorLeds(PIN_EXTRA_DISPLAY_CLOCK, PIN_EXTRA_DISPLAY_DATA);
 SRButtons buttons(PIN_BTNS1_DATA,PIN_BTNS1_CLOCK,PIN_BTNS1_INPUT,false); 
 
 //TODO:time provider
-TimeProvider timeProvider = SoftTimeProvider();
-AlarmProvider alarmProvider = AlarmProvider();
-ButtonsManager buttonsManager = ButtonsManager(buttons,timeProvider);
+RTC_DS1307 rtc;
 
-UI mainUI = MainUI(sevenSeg,weeksDisplay,indicatorLeds,timeProvider,alarmProvider);
-UI alarmsUI = AlarmsUI(alarmProvider,sevenSeg,indicatorLeds, weeksDisplay, buttonsManager);
-UI timeDateSetUI = TimeDateSetUI(timeProvider,buttonsManager,sevenSeg,indicatorLeds);
+RTCTimeProvider timeProvider(rtc);
+AlarmProvider alarmProvider;
+ButtonsManager buttonsManager(buttons,timeProvider);
+
+MainUI mainUI = MainUI(sevenSeg,weeksDisplay,indicatorLeds,timeProvider,alarmProvider);
+AlarmsUI alarmsUI = AlarmsUI(alarmProvider,sevenSeg,indicatorLeds, weeksDisplay, buttonsManager);
+TimeDateSetUI timeDateSetUI = TimeDateSetUI(timeProvider,buttonsManager,sevenSeg,indicatorLeds);
 
 enum MODE {
   MAIN,ALARMS,TIMEDATESET
 };
 
+
 MODE mode = MAIN;
 
+bool alarmActive = true;
+
+Alarm nextAlarm;
+bool isAlarmRinging=false;
+unsigned long alarmRingingSince=0;
+byte alarmRingTime = 1500;//ms
+
 void setup() {
+  Wire.begin();
+  rtc.begin();
 
   pinMode(PIN_DISPLAY_DATA, OUTPUT);
   pinMode(PIN_DISPLAY_CLOCK, OUTPUT);
@@ -47,13 +62,40 @@ void setup() {
   pinMode(PIN_BTNS1_DATA, OUTPUT);
   pinMode(PIN_BTNS1_CLOCK, OUTPUT);
   pinMode(PIN_BTNS1_INPUT, INPUT_PULLUP);
+  
+  pinMode(PIN_LED_ALARMON,OUTPUT);
+  digitalWrite(PIN_LED_ALARMON,alarmActive?HIGH:LOW);
+  
+  pinMode(PIN_ALARM_OUTPUT,OUTPUT);
+  digitalWrite(PIN_ALARM_OUTPUT,LOW);
+
   alarmProvider.loadAlarmsFromROM();
+
+  nextAlarm = alarmProvider.getNextAlarm(rtc.now().hour(),rtc.now().minute(),rtc.now().dayOfWeek());
 }
 
+Alarm tempNextAlarm;
 void loop() {
+  if(buttonsManager.isSpAndRel(BTN_ALARMON)) {
+    alarmActive=!alarmActive;
+    digitalWrite(PIN_LED_ALARMON,alarmActive?HIGH:LOW);
+  }
+  if(isAlarmRinging&&millis()-alarmRingingSince>alarmRingTime){
+    digitalWrite(PIN_ALARM_OUTPUT,LOW);
+    isAlarmRinging=false;
+    alarmRingingSince=0;
+  }
 
   switch(mode) {
     case MAIN: 
+      //CHECK FOR ALARM TIME
+      tempNextAlarm = alarmProvider.getNextAlarm(rtc.now().hour(),rtc.now().minute(),rtc.now().dayOfWeek());
+      if(alarmActive&&!(nextAlarm==tempNextAlarm)) {
+	nextAlarm=tempNextAlarm;
+	digitalWrite(PIN_ALARM_OUTPUT,HIGH);
+	isAlarmRinging=true;
+	alarmRingingSince=millis();
+      }
       mainUI.process();
       if(buttonsManager.isSpAndRel(BTN_ALARMS)) {
 	mode = ALARMS;
@@ -69,6 +111,7 @@ void loop() {
 	alarmsUI.saveData();
 	alarmProvider.saveAlarmsToROM();
 	mode = MAIN;
+	nextAlarm = alarmProvider.getNextAlarm(rtc.now().hour(),rtc.now().minute(),rtc.now().dayOfWeek());
       }
       break;
     case TIMEDATESET:

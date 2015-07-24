@@ -17,13 +17,14 @@
 #define PIN_EXTRA_DISPLAY_DATA 2
 #define PIN_EXTRA_DISPLAY_CLOCK 9
 
-#define PIN_BTNS1_DATA 10
-#define PIN_BTNS1_CLOCK 11
-#define PIN_BTNS1_INPUT 12
+#define PIN_BTNS1_DATA 2
+#define PIN_BTNS1_CLOCK 10
+#define PIN_BTNS1_INPUT 11
 
 //this led shows will the alarm ring or not
 //had to assign a seperate pin, coz shift register is house full
-#define PIN_LED_ALARMON 13
+#define PIN_LED_ALARMON 12
+#define PIN_ALARM_OUTPUT 13
 
 #define BTN_UP 0
 #define BTN_DOWN 1

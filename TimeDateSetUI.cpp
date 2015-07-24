@@ -26,6 +26,8 @@
   //get current time and set the digits
   void TimeDateSetUI::initEditTime() {
     byte hour = timeProvider.getHours();
+    if(hour==0) hour=12;
+    else if(hour>12) hour-=12;
     byte minutes = timeProvider.getMinutes();
     digits[0] = hour/10; digits[1] = hour%10;
     digits[2] = minutes/10; digits[3] = minutes%10;
@@ -34,7 +36,7 @@
   //the process loop will take care of lighting appropriate
   //indicator led
   void TimeDateSetUI::initEditAM_PM() {
-    isAM = timeProvider.isAM();
+    isAM = timeProvider.getHours()>=12;
   }
   //get day,month and set the digits
   void TimeDateSetUI::initEditDate() {
@@ -51,12 +53,19 @@
   }
   //save time to timeprovider
   void TimeDateSetUI::saveTime() {
-    timeProvider.setHours((byte)aggregateDigits(true,false));
+    byte hr = (byte)aggregateDigits(true,false);
+    //if the current rtc time is pm, then keep the pm
+    //the next stage am-pm adjustment will correct it if needed
+    if(timeProvider.getHours()>12) hr+=12;   
+    timeProvider.setHours(hr);
     timeProvider.setMinutes((byte)aggregateDigits(false,true));
   }
   //save is am_pm to timeprovider
   void TimeDateSetUI::saveAM_PM() {
-    timeProvider.setAM(isAM);
+    byte hrs = timeProvider.getHours();
+    if(hrs<=11&&(!isAM)) hrs+=12;
+    else if(hrs>=12&&(isAM)) hrs-=12;
+    timeProvider.setHours(hrs);
   }
   //save date to timeprovider
   void TimeDateSetUI::saveDate() {
@@ -168,4 +177,7 @@
 	nextMode(); //switch to next mode
 	initCurrentMode(); //initialize the new mode
     }
+  }
+  void TimeDateSetUI::saveData() {
+    saveCurrentMode();
   }

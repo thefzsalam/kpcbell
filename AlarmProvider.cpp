@@ -2,13 +2,13 @@
 #include "EEPROM2.h"
 
 
-  bool operator== (Alarm& lhs, Alarm& rhs) {
+  bool operator== (const Alarm& lhs,const Alarm& rhs) {
     return (lhs.hour==rhs.hour) &&
 	   (lhs.minute == rhs.minute) && 
 	   (lhs.weekdays == rhs.weekdays) ;
   }
-  Alarm AlarmProvider::getNextAlarm(byte hr, byte min,bool isAM, byte weekday) {
-    if(!isAM) hr=hr+12;
+  Alarm AlarmProvider::getNextAlarm(byte hr, byte min,byte weekday) {
+    weekday=0b10000000>>weekday;
     Alarm al={0,0};
     int delta=60*24; //set delta to maximum possible value
     for(byte i=0; i<alarmsLength; i++) {
@@ -121,8 +121,9 @@
 
   void AlarmProvider::saveAlarmsToROM() {
     int romAddress = 0;
-    EEPROM.put(romAddress, EEPROM_CHECK);
-    romAddress += sizeof(EEPROM_CHECK);
+    byte check = EEPROM_CHECK;
+    EEPROM.put(romAddress,check);
+    romAddress += sizeof(check);
     //to check whether any valid data is present in the eeprom
     //define a constant and check whether it exists in the eeprom's first few bytes
 
